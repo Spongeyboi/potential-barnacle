@@ -1,0 +1,60 @@
+/usr/bin/systemd-detect-virt
+
+/usr/bin/lspci
+/usr/bin/lsblk --json -b -o+name,path,pkname,size,log-sec,pttype,ptuuid,rota,tran,partn,partuuid,parttype,uuid,fstype,fsver,fsavail,fsuse%,type,mountpoint,mountpoints,fsroots
+
+/usr/bin/pacman -Sy
+/usr/bin/pacman -Qu archinstall
+
+/usr/bin/mount --mkdir /dev/vda2 /mnt/arch_btrfs
+/usr/bin/btrfs subvolume create /mnt/arch_btrfs/@
+/usr/bin/btrfs subvolume create /mnt/arch_btrfs/@home
+/usr/bin/btrfs subvolume create /mnt/arch_btrfs/@log
+/usr/bin/btrfs subvolume create /mnt/arch_btrfs/@pkg
+/usr/bin/btrfs subvolume create /mnt/arch_btrfs/@.snapshots
+/usr/bin/umount /mnt/arch_btrfs
+
+/usr/bin/mount --mkdir -o subvol=@ /dev/vda2 /mnt/arch
+/usr/bin/mount --mkdir -o subvol=@home /dev/vda2 /mnt/arch/home
+/usr/bin/mount --mkdir -o subvol=@log /dev/vda2 /mnt/arch/var/log
+/usr/bin/mount --mkdir -o subvol=@pkg /dev/vda2 /mnt/arch/var/cache/pacman/pkg
+/usr/bin/mount --mkdir -o subvol=@.snapshots /dev/vda2 /mnt/arch/.snapshots
+/usr/bin/mount --mkdir /dev/vda1 /mnt/arch/boot
+
+/usr/bin/timedatectl show --property=NTPSynchronized --value
+/usr/bin/systemctl show --no-pager -p SubState --value reflector.service
+/usr/bin/systemctl show --property=ActiveEnterTimestamp --no-pager archlinux-keyring-wkd-sync.timer
+/usr/bin/systemctl show --no-pager -p SubState --value archlinux-keyring-wkd-sync.service
+
+/usr/bin/pacman -Syy
+/usr/bin/pacstrap -C /etc/pacman.conf -K /mnt/arch base base-devel linux-firmware linux-zen btrfs-progs --noconfirm
+
+/usr/bin/arch-chroot /mnt/arch locale-gen
+/usr/bin/arch-chroot /mnt/arch chmod 700 /root
+/usr/bin/arch-chroot /mnt/arch mkinitcpio -P
+/usr/bin/pacstrap -C /etc/pacman.conf -K /mnt/arch limine --noconfirm
+
+/usr/bin/pacstrap -C /etc/pacman.conf -K /mnt/arch networkmanager --noconfirm
+/usr/bin/pacstrap -C /etc/pacman.conf -K /mnt/arch network-manager-applet --noconfirm
+/usr/bin/arch-chroot /mnt/arch systemctl enable NetworkManager.service
+
+
+
+/usr/bin/pacstrap -C /etc/pacman.conf -K /mnt/arch kakoune --noconfirm
+
+/usr/bin/pacstrap -C /etc/pacman.conf -K /mnt/arch nano vim openssh htop wget iwd wireless_tools wpa_supplicant smartmontools xdg-utils --noconfirm
+
+
+/usr/bin/pacstrap -C /etc/pacman.conf -K /mnt/arch sddm --noconfirm
+/usr/bin/arch-chroot /mnt/arch systemctl enable sddm
+/usr/bin/arch-chroot /mnt/arch ln -s /usr/share/zoneinfo/UTC /etc/localtime
+/usr/bin/arch-chroot /mnt/arch systemctl enable systemd-timesyncd
+/usr/bin/arch-chroot /mnt/arch sh -c 'echo root:1 | chpasswd'
+/usr/bin/localectl --no-pager list-keymaps
+
+/usr/bin/systemd-nspawn -D /mnt/arch --timezone=off -b --no-pager --machine arch
+
+/usr/bin/systemd-run --machine=arch --pty /usr/bin/localectl set-keymap uk
+/usr/bin/systemd-run --machine=arch --pty shutdown now
+/usr/bin/genfstab -pU /mnt/arch
+

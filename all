@@ -1,0 +1,57 @@
+passwd
+1
+1
+ip a
+
+cgdisk /dev/vda
+EFI partition 1G Label efi@partition
+ALL partition END Label arch@partition
+
+pacman -Sy --noconfirm archlinux-keyring
+reflector -c GB -p https --latest 10 -a 2 --sort rate --save /etc/pacman.d/mirrorlist
+mkfs.vfat -F32 -n efi@fat32 /dev/vda1
+mkfs.btrfs -L arch@btrfs /dev/vda2
+mount /dev/vda2 /mnt
+btrfs subvolume create /mnt/@
+btrfs subvolume create /mnt/@home
+btrfs subvolume create /mnt/@log
+btrfs subvolume create /mnt/@pkg
+btrfs subvolume create /mnt/@.snapshots
+btrfs subvolume create /mnt/@flatpak
+btrfs subvolume create /mnt/@tmp
+btrfs subvolume create /mnt/@swap
+btrfs subvolume create /mnt/do_not_snapshot
+btrfs subvolume create /mnt/do_not_snapshot/@downloads
+btrfs subvolume create /mnt/do_not_snapshot/@.cache
+btrfs subvolume create /mnt/do_not_snapshot/@steam
+umount /mnt
+mount -m -o subvol=@ /dev/vda2 /mnt
+mount -m -o subvol=@home /dev/vda2 /mnt/home
+mount -m -o subvol=@pkg /dev/vda2 /mnt/var/cache/pacman/pkg
+mount -m -o subvol=@log /dev/vda2 /mnt/var/log
+mount -m -o subvol=@.snapshots /dev/vda2 /mnt/.snapshots
+mount -m -o subvol=@swap /dev/vda2 /mnt/swap
+btrfs filesystem mkswapfile --size 1g --uuid clear /mnt/swap/swapfile
+swapon /mnt/swap/swapfile
+btrfs subvolume list -a /mnt
+mount -m /dev/vda1 /mnt/boot
+pacstrap -K /mnt base base-devel linux-zen linux-zen-headers linux-firmware amd-ucode neovim nano btrfs-progs util-linux sudo man man-db texinfo tldr reflector neofetch btop limine
+genfstab -L /mnt >> /mnt/etc/fstab
+cp -r -t /mnt/etc/systemd/ /etc/systemd/network.conf.d /etc/systemd/network /etc/systemd/resolved.conf.d
+arch-chroot /mnt
+ln -sf /usr/share/zoneinfo/Europe/London /etc/localtime
+hwclock --systohc
+echo -e "en_IE.UTF-8 UTF-8\nen_US.UTF-8 UTF-8" >> /etc/locale.gen
+locale-gen
+echo "LANG=en_IE.UTF-8" >> /etc/locale.conf
+echo "KEYMAP=uk" >> /etc/vconsole.conf
+echo "openbsd" >> /etc/hostname
+pacman -S limine
+cp /usr/share/limine/BOOTX64.EFI /boot
+
+passwd
+1
+1
+
+mkinitcpio -P
+umount -R /mnt
